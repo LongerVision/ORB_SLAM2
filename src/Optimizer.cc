@@ -18,15 +18,33 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <vector>
+#include <list>
+#include <set>
+#include <map>
+#include <utility>
 #include "Optimizer.h"
 
-#include "Thirdparty/g2o/g2o/core/block_solver.h"
-#include "Thirdparty/g2o/g2o/core/optimization_algorithm_levenberg.h"
-#include "Thirdparty/g2o/g2o/solvers/linear_solver_eigen.h"
-#include "Thirdparty/g2o/g2o/types/types_six_dof_expmap.h"
-#include "Thirdparty/g2o/g2o/core/robust_kernel_impl.h"
-#include "Thirdparty/g2o/g2o/solvers/linear_solver_dense.h"
-#include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
+#include "g2o/core/sparse_optimizer.h"
+#include "g2o/core/block_solver.h"
+#include "g2o/core/solver.h"
+#include "g2o/core/robust_kernel_impl.h"
+#include "g2o/core/optimization_algorithm_levenberg.h"
+
+#include "g2o/solvers/eigen/linear_solver_eigen.h"
+#include "g2o/solvers/cholmod/linear_solver_cholmod.h"
+#include "g2o/solvers/csparse/linear_solver_csparse.h"
+#include "g2o/solvers/structure_only/structure_only_solver.h"
+
+#include "g2o/solvers/dense/linear_solver_dense.h"
+#include "g2o/types/sba/types_six_dof_expmap.h"
+#include "g2o/types/sim3/types_seven_dof_expmap.h"
+#include "g2o/types/icp/types_icp.h"
+
+//#include "extended_types_six_dof_expmap.h"
+//#include "extended_types_seven_dof_expmap.h"
+
+
 
 #include<Eigen/StdVector>
 
@@ -40,22 +58,43 @@ namespace ORB_SLAM2
 
 void Optimizer::GlobalBundleAdjustemnt(Map* pMap, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
 {
-    vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
-    vector<MapPoint*> vpMP = pMap->GetAllMapPoints();
-    BundleAdjustment(vpKFs,vpMP,nIterations,pbStopFlag, nLoopKF, bRobust);
+    std::vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+    std::vector<MapPoint*> vpMP = pMap->GetAllMapPoints();
+    Optimizer::BundleAdjustment(vpKFs,vpMP,nIterations,pbStopFlag, nLoopKF, bRobust);
 }
 
 
-void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<MapPoint *> &vpMP,
+void Optimizer::BundleAdjustment(const std::vector<KeyFrame *> &vpKFs, const std::vector<MapPoint *> &vpMP,
                                  int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
 {
-    vector<bool> vbNotIncludedMP;
+    std::vector<bool> vbNotIncludedMP;
     vbNotIncludedMP.resize(vpMP.size());
 
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
 
-    linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
+    // Pei JIA, 2016-10-22. replaced by the following
+    if (DENSE)
+    {
+        linearSolver= new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+        std::cerr << "Using DENSE" << std::endl;
+    }
+    else
+    {
+    #ifdef G2O_HAVE_CHOLMOD
+        std::cerr << "Using CHOLMOD" << std::endl;
+        linearSolver = new g2o::LinearSolverCholmod<g2o::BlockSolver_6_3::PoseMatrixType>();
+    #elif defined G2O_HAVE_CSPARSE
+        linearSolver = new g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>();
+        std::cerr << "Using CSPARSE" << std::endl;
+    #else
+        #error neither CSparse nor Cholmod are available
+    #endif
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
 
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
 
@@ -98,11 +137,11 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
         vPoint->setMarginalized(true);
         optimizer.addVertex(vPoint);
 
-       const map<KeyFrame*,size_t> observations = pMP->GetObservations();
+       const std::map<KeyFrame*,size_t> observations = pMP->GetObservations();
 
         int nEdges = 0;
         //SET EDGES
-        for(map<KeyFrame*,size_t>::const_iterator mit=observations.begin(); mit!=observations.end(); mit++)
+        for(std::map<KeyFrame*,size_t>::const_iterator mit=observations.begin(); mit!=observations.end(); mit++)
         {
 
             KeyFrame* pKF = mit->first;
@@ -241,7 +280,28 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
 
-    linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Pei JIA, 2016-10-22. replaced by the following
+    // linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+    
+    if (DENSE)
+    {
+        linearSolver= new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+        std::cerr << "Using DENSE" << std::endl;
+    }
+    else
+    {
+    #ifdef G2O_HAVE_CHOLMOD
+        std::cerr << "Using CHOLMOD" << std::endl;
+        linearSolver = new g2o::LinearSolverCholmod<g2o::BlockSolver_6_3::PoseMatrixType>();
+    #elif defined G2O_HAVE_CSPARSE
+        linearSolver = new g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>();
+        std::cerr << "Using CSPARSE" << std::endl;
+    #else
+        #error neither CSparse nor Cholmod are available
+    #endif
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
 
@@ -260,13 +320,13 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     // Set MapPoint vertices
     const int N = pFrame->N;
 
-    vector<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdgesMono;
-    vector<size_t> vnIndexEdgeMono;
+    std::vector<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdgesMono;
+    std::vector<size_t> vnIndexEdgeMono;
     vpEdgesMono.reserve(N);
     vnIndexEdgeMono.reserve(N);
 
-    vector<g2o::EdgeStereoSE3ProjectXYZOnlyPose*> vpEdgesStereo;
-    vector<size_t> vnIndexEdgeStereo;
+    std::vector<g2o::EdgeStereoSE3ProjectXYZOnlyPose*> vpEdgesStereo;
+    std::vector<size_t> vnIndexEdgeStereo;
     vpEdgesStereo.reserve(N);
     vnIndexEdgeStereo.reserve(N);
 
@@ -275,7 +335,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
 
     {
-    unique_lock<mutex> lock(MapPoint::mGlobalMutex);
+    std::unique_lock<std::mutex> lock(MapPoint::mGlobalMutex);
 
     for(int i=0; i<N; i++)
     {
@@ -453,12 +513,12 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
 {    
     // Local KeyFrames: First Breath Search from Current Keyframe
-    list<KeyFrame*> lLocalKeyFrames;
+    std::list<KeyFrame*> lLocalKeyFrames;
 
     lLocalKeyFrames.push_back(pKF);
     pKF->mnBALocalForKF = pKF->mnId;
 
-    const vector<KeyFrame*> vNeighKFs = pKF->GetVectorCovisibleKeyFrames();
+    const std::vector<KeyFrame*> vNeighKFs = pKF->GetVectorCovisibleKeyFrames();
     for(int i=0, iend=vNeighKFs.size(); i<iend; i++)
     {
         KeyFrame* pKFi = vNeighKFs[i];
@@ -468,11 +528,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     // Local MapPoints seen in Local KeyFrames
-    list<MapPoint*> lLocalMapPoints;
-    for(list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin() , lend=lLocalKeyFrames.end(); lit!=lend; lit++)
+    std::list<MapPoint*> lLocalMapPoints;
+    for(std::list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin() , lend=lLocalKeyFrames.end(); lit!=lend; lit++)
     {
-        vector<MapPoint*> vpMPs = (*lit)->GetMapPointMatches();
-        for(vector<MapPoint*>::iterator vit=vpMPs.begin(), vend=vpMPs.end(); vit!=vend; vit++)
+        std::vector<MapPoint*> vpMPs = (*lit)->GetMapPointMatches();
+        for(std::vector<MapPoint*>::iterator vit=vpMPs.begin(), vend=vpMPs.end(); vit!=vend; vit++)
         {
             MapPoint* pMP = *vit;
             if(pMP)
@@ -486,11 +546,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     // Fixed Keyframes. Keyframes that see Local MapPoints but that are not Local Keyframes
-    list<KeyFrame*> lFixedCameras;
-    for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
+    std::list<KeyFrame*> lFixedCameras;
+    for(std::list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
-        map<KeyFrame*,size_t> observations = (*lit)->GetObservations();
-        for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
+        std::map<KeyFrame*,size_t> observations = (*lit)->GetObservations();
+        for(std::map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
         {
             KeyFrame* pKFi = mit->first;
 
@@ -507,7 +567,27 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
 
-    linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Pei JIA, 2016-10-22. replaced by the following
+    // linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
+    if (DENSE)
+    {
+        linearSolver= new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+        std::cerr << "Using DENSE" << std::endl;
+    }
+    else
+    {
+    #ifdef G2O_HAVE_CHOLMOD
+        std::cerr << "Using CHOLMOD" << std::endl;
+        linearSolver = new g2o::LinearSolverCholmod<g2o::BlockSolver_6_3::PoseMatrixType>();
+    #elif defined G2O_HAVE_CSPARSE
+        linearSolver = new g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>();
+        std::cerr << "Using CSPARSE" << std::endl;
+    #else
+        #error neither CSparse nor Cholmod are available
+    #endif
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
 
@@ -520,7 +600,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     unsigned long maxKFid = 0;
 
     // Set Local KeyFrame vertices
-    for(list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin(), lend=lLocalKeyFrames.end(); lit!=lend; lit++)
+    for(std::list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin(), lend=lLocalKeyFrames.end(); lit!=lend; lit++)
     {
         KeyFrame* pKFi = *lit;
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
@@ -533,7 +613,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     // Set Fixed KeyFrame vertices
-    for(list<KeyFrame*>::iterator lit=lFixedCameras.begin(), lend=lFixedCameras.end(); lit!=lend; lit++)
+    for(std::list<KeyFrame*>::iterator lit=lFixedCameras.begin(), lend=lFixedCameras.end(); lit!=lend; lit++)
     {
         KeyFrame* pKFi = *lit;
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
@@ -548,28 +628,28 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     // Set MapPoint vertices
     const int nExpectedSize = (lLocalKeyFrames.size()+lFixedCameras.size())*lLocalMapPoints.size();
 
-    vector<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
+    std::vector<g2o::EdgeSE3ProjectXYZ*> vpEdgesMono;
     vpEdgesMono.reserve(nExpectedSize);
 
-    vector<KeyFrame*> vpEdgeKFMono;
+    std::vector<KeyFrame*> vpEdgeKFMono;
     vpEdgeKFMono.reserve(nExpectedSize);
 
-    vector<MapPoint*> vpMapPointEdgeMono;
+    std::vector<MapPoint*> vpMapPointEdgeMono;
     vpMapPointEdgeMono.reserve(nExpectedSize);
 
-    vector<g2o::EdgeStereoSE3ProjectXYZ*> vpEdgesStereo;
+    std::vector<g2o::EdgeStereoSE3ProjectXYZ*> vpEdgesStereo;
     vpEdgesStereo.reserve(nExpectedSize);
 
-    vector<KeyFrame*> vpEdgeKFStereo;
+    std::vector<KeyFrame*> vpEdgeKFStereo;
     vpEdgeKFStereo.reserve(nExpectedSize);
 
-    vector<MapPoint*> vpMapPointEdgeStereo;
+    std::vector<MapPoint*> vpMapPointEdgeStereo;
     vpMapPointEdgeStereo.reserve(nExpectedSize);
 
     const float thHuberMono = sqrt(5.991);
     const float thHuberStereo = sqrt(7.815);
 
-    for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
+    for(std::list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
         MapPoint* pMP = *lit;
         g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
@@ -579,10 +659,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         vPoint->setMarginalized(true);
         optimizer.addVertex(vPoint);
 
-        const map<KeyFrame*,size_t> observations = pMP->GetObservations();
+        const std::map<KeyFrame*,size_t> observations = pMP->GetObservations();
 
         //Set edges
-        for(map<KeyFrame*,size_t>::const_iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
+        for(std::map<KeyFrame*,size_t>::const_iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
         {
             KeyFrame* pKFi = mit->first;
 
@@ -708,7 +788,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
     }
 
-    vector<pair<KeyFrame*,MapPoint*> > vToErase;
+    std::vector<std::pair<KeyFrame*,MapPoint*> > vToErase;
     vToErase.reserve(vpEdgesMono.size()+vpEdgesStereo.size());
 
     // Check inlier observations       
@@ -723,7 +803,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(e->chi2()>5.991 || !e->isDepthPositive())
         {
             KeyFrame* pKFi = vpEdgeKFMono[i];
-            vToErase.push_back(make_pair(pKFi,pMP));
+            vToErase.push_back(std::make_pair(pKFi,pMP));
         }
     }
 
@@ -738,12 +818,12 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(e->chi2()>7.815 || !e->isDepthPositive())
         {
             KeyFrame* pKFi = vpEdgeKFStereo[i];
-            vToErase.push_back(make_pair(pKFi,pMP));
+            vToErase.push_back(std::make_pair(pKFi,pMP));
         }
     }
 
     // Get Map Mutex
-    unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+    std::unique_lock<std::mutex> lock(pMap->mMutexMapUpdate);
 
     if(!vToErase.empty())
     {
@@ -759,7 +839,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     // Recover optimized data
 
     //Keyframes
-    for(list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin(), lend=lLocalKeyFrames.end(); lit!=lend; lit++)
+    for(std::list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin(), lend=lLocalKeyFrames.end(); lit!=lend; lit++)
     {
         KeyFrame* pKF = *lit;
         g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pKF->mnId));
@@ -768,7 +848,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     //Points
-    for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
+    for(std::list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
     {
         MapPoint* pMP = *lit;
         g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->mnId+maxKFid+1));
@@ -781,27 +861,52 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
                                        const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,
                                        const LoopClosing::KeyFrameAndPose &CorrectedSim3,
-                                       const map<KeyFrame *, set<KeyFrame *> > &LoopConnections, const bool &bFixScale)
+                                       const std::map<KeyFrame *, std::set<KeyFrame *> > &LoopConnections, const bool &bFixScale)
 {
     // Setup optimizer
     g2o::SparseOptimizer optimizer;
     optimizer.setVerbose(false);
-    g2o::BlockSolver_7_3::LinearSolverType * linearSolver =
-           new g2o::LinearSolverEigen<g2o::BlockSolver_7_3::PoseMatrixType>();
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Pei JIA, 2016-10-22. replaced by the following
+    
+//    g2o::BlockSolver_7_3::LinearSolverType * linearSolver =
+//           new g2o::LinearSolverEigen<g2o::BlockSolver_7_3::PoseMatrixType>();
+    g2o::BlockSolver_7_3::LinearSolverType * linearSolver = NULL;
+
+    if (DENSE)
+    {
+        linearSolver= new g2o::LinearSolverDense<g2o::BlockSolver_7_3::PoseMatrixType>();
+        std::cerr << "Using DENSE" << std::endl;
+    }
+    else
+    {
+    #ifdef G2O_HAVE_CHOLMOD
+        std::cerr << "Using CHOLMOD" << std::endl;
+        linearSolver = new g2o::LinearSolverCholmod<g2o::BlockSolver_7_3::PoseMatrixType>();
+    #elif defined G2O_HAVE_CSPARSE
+        linearSolver = new g2o::LinearSolverCSparse<g2o::BlockSolver_7_3::PoseMatrixType>();
+        std::cerr << "Using CSPARSE" << std::endl;
+    #else
+        #error neither CSparse nor Cholmod are available
+    #endif
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
     g2o::BlockSolver_7_3 * solver_ptr= new g2o::BlockSolver_7_3(linearSolver);
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
 
     solver->setUserLambdaInit(1e-16);
     optimizer.setAlgorithm(solver);
 
-    const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
-    const vector<MapPoint*> vpMPs = pMap->GetAllMapPoints();
+    const std::vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+    const std::vector<MapPoint*> vpMPs = pMap->GetAllMapPoints();
 
     const unsigned int nMaxKFid = pMap->GetMaxKFid();
 
-    vector<g2o::Sim3,Eigen::aligned_allocator<g2o::Sim3> > vScw(nMaxKFid+1);
-    vector<g2o::Sim3,Eigen::aligned_allocator<g2o::Sim3> > vCorrectedSwc(nMaxKFid+1);
-    vector<g2o::VertexSim3Expmap*> vpVertices(nMaxKFid+1);
+    std::vector<g2o::Sim3,Eigen::aligned_allocator<g2o::Sim3> > vScw(nMaxKFid+1);
+    std::vector<g2o::Sim3,Eigen::aligned_allocator<g2o::Sim3> > vCorrectedSwc(nMaxKFid+1);
+    std::vector<g2o::VertexSim3Expmap*> vpVertices(nMaxKFid+1);
 
     const int minFeat = 100;
 
@@ -844,20 +949,20 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
     }
 
 
-    set<pair<long unsigned int,long unsigned int> > sInsertedEdges;
+    std::set<std::pair<long unsigned int,long unsigned int> > sInsertedEdges;
 
     const Eigen::Matrix<double,7,7> matLambda = Eigen::Matrix<double,7,7>::Identity();
 
     // Set Loop edges
-    for(map<KeyFrame *, set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend=LoopConnections.end(); mit!=mend; mit++)
+    for(std::map<KeyFrame *, std::set<KeyFrame *> >::const_iterator mit = LoopConnections.begin(), mend=LoopConnections.end(); mit!=mend; mit++)
     {
         KeyFrame* pKF = mit->first;
         const long unsigned int nIDi = pKF->mnId;
-        const set<KeyFrame*> &spConnections = mit->second;
+        const std::set<KeyFrame*> &spConnections = mit->second;
         const g2o::Sim3 Siw = vScw[nIDi];
         const g2o::Sim3 Swi = Siw.inverse();
 
-        for(set<KeyFrame*>::const_iterator sit=spConnections.begin(), send=spConnections.end(); sit!=send; sit++)
+        for(std::set<KeyFrame*>::const_iterator sit=spConnections.begin(), send=spConnections.end(); sit!=send; sit++)
         {
             const long unsigned int nIDj = (*sit)->mnId;
             if((nIDi!=pCurKF->mnId || nIDj!=pLoopKF->mnId) && pKF->GetWeight(*sit)<minFeat)
@@ -875,7 +980,7 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
 
             optimizer.addEdge(e);
 
-            sInsertedEdges.insert(make_pair(min(nIDi,nIDj),max(nIDi,nIDj)));
+            sInsertedEdges.insert(std::make_pair(std::min(nIDi,nIDj),std::max(nIDi,nIDj)));
         }
     }
 
@@ -923,8 +1028,8 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
         }
 
         // Loop edges
-        const set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
-        for(set<KeyFrame*>::const_iterator sit=sLoopEdges.begin(), send=sLoopEdges.end(); sit!=send; sit++)
+        const std::set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
+        for(std::set<KeyFrame*>::const_iterator sit=sLoopEdges.begin(), send=sLoopEdges.end(); sit!=send; sit++)
         {
             KeyFrame* pLKF = *sit;
             if(pLKF->mnId<pKF->mnId)
@@ -949,15 +1054,15 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
         }
 
         // Covisibility graph edges
-        const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(minFeat);
-        for(vector<KeyFrame*>::const_iterator vit=vpConnectedKFs.begin(); vit!=vpConnectedKFs.end(); vit++)
+        const std::vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(minFeat);
+        for(std::vector<KeyFrame*>::const_iterator vit=vpConnectedKFs.begin(); vit!=vpConnectedKFs.end(); vit++)
         {
             KeyFrame* pKFn = *vit;
             if(pKFn && pKFn!=pParentKF && !pKF->hasChild(pKFn) && !sLoopEdges.count(pKFn))
             {
                 if(!pKFn->isBad() && pKFn->mnId<pKF->mnId)
                 {
-                    if(sInsertedEdges.count(make_pair(min(pKF->mnId,pKFn->mnId),max(pKF->mnId,pKFn->mnId))))
+                    if(sInsertedEdges.count(std::make_pair(std::min(pKF->mnId,pKFn->mnId),std::max(pKF->mnId,pKFn->mnId))))
                         continue;
 
                     g2o::Sim3 Snw;
@@ -986,7 +1091,7 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
     optimizer.initializeOptimization();
     optimizer.optimize(20);
 
-    unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+    std::unique_lock<std::mutex> lock(pMap->mMutexMapUpdate);
 
     // SE3 Pose Recovering. Sim3:[sR t;0 1] -> SE3:[R t/s;0 1]
     for(size_t i=0;i<vpKFs.size();i++)
@@ -1043,12 +1148,32 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
     }
 }
 
-int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches1, g2o::Sim3 &g2oS12, const float th2, const bool bFixScale)
+int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, std::vector<MapPoint *> &vpMatches1, g2o::Sim3 &g2oS12, const float th2, const bool bFixScale)
 {
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolverX::LinearSolverType * linearSolver;
 
-    linearSolver = new g2o::LinearSolverDense<g2o::BlockSolverX::PoseMatrixType>();
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Pei JIA, 2016-10-22. replaced by the following
+    // linearSolver = new g2o::LinearSolverDense<g2o::BlockSolverX::PoseMatrixType>();
+    if (DENSE)
+    {
+        linearSolver= new g2o::LinearSolverDense<g2o::BlockSolverX::PoseMatrixType>();
+        std::cerr << "Using DENSE" << std::endl;
+    }
+    else
+    {
+    #ifdef G2O_HAVE_CHOLMOD
+        std::cerr << "Using CHOLMOD" << std::endl;
+        linearSolver = new g2o::LinearSolverCholmod<g2o::BlockSolverX::PoseMatrixType>();
+    #elif defined G2O_HAVE_CSPARSE
+        linearSolver = new g2o::LinearSolverCSparse<g2o::BlockSolverX::PoseMatrixType>();
+        std::cerr << "Using CSPARSE" << std::endl;
+    #else
+        #error neither CSparse nor Cholmod are available
+    #endif
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
     g2o::BlockSolverX * solver_ptr = new g2o::BlockSolverX(linearSolver);
 
@@ -1065,28 +1190,51 @@ int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
     const cv::Mat R2w = pKF2->GetRotation();
     const cv::Mat t2w = pKF2->GetTranslation();
 
+    ///////////////////////////////////////////////////////////////////////////////////////////
     // Set Sim3 vertex
-    g2o::VertexSim3Expmap * vSim3 = new g2o::VertexSim3Expmap();    
-    vSim3->_fix_scale=bFixScale;
-    vSim3->setEstimate(g2oS12);
-    vSim3->setId(0);
-    vSim3->setFixed(false);
-    vSim3->_principle_point1[0] = K1.at<float>(0,2);
-    vSim3->_principle_point1[1] = K1.at<float>(1,2);
-    vSim3->_focal_length1[0] = K1.at<float>(0,0);
-    vSim3->_focal_length1[1] = K1.at<float>(1,1);
-    vSim3->_principle_point2[0] = K2.at<float>(0,2);
-    vSim3->_principle_point2[1] = K2.at<float>(1,2);
-    vSim3->_focal_length2[0] = K2.at<float>(0,0);
-    vSim3->_focal_length2[1] = K2.at<float>(1,1);
-    optimizer.addVertex(vSim3);
+    // Pei JIA, 2016-10-22. replaced by the following
+//    g2o::VertexSim3Expmap * vSim3 = new g2o::VertexSim3Expmap();    
+//    vSim3->_fix_scale=bFixScale;
+//    vSim3->setEstimate(g2oS12);
+//    vSim3->setId(0);
+//    vSim3->setFixed(false);
+//    vSim3->_principle_point1[0] = K1.at<float>(0,2);
+//    vSim3->_principle_point1[1] = K1.at<float>(1,2);
+//    vSim3->_focal_length1[0] = K1.at<float>(0,0);
+//    vSim3->_focal_length1[1] = K1.at<float>(1,1);
+//    vSim3->_principle_point2[0] = K2.at<float>(0,2);
+//    vSim3->_principle_point2[1] = K2.at<float>(1,2);
+//    vSim3->_focal_length2[0] = K2.at<float>(0,0);
+//    vSim3->_focal_length2[1] = K2.at<float>(1,1);
+    g2o::VertexSim3Expmap * vSim3_left = new g2o::VertexSim3Expmap();
+    g2o::VertexSim3Expmap * vSim3_right = new g2o::VertexSim3Expmap();
+    vSim3_left->_fix_scale=bFixScale;
+    vSim3_left->setEstimate(g2oS12);
+    vSim3_left->setId(0);
+    vSim3_left->setFixed(false);
+    vSim3_left->_principle_point[0] = K1.at<float>(0,2);
+    vSim3_left->_principle_point[1] = K1.at<float>(1,2);
+    vSim3_left->_focal_length[0] = K1.at<float>(0,0);
+    vSim3_left->_focal_length[1] = K1.at<float>(1,1);      
+    vSim3_right->_fix_scale=bFixScale;
+    vSim3_right->setEstimate(g2oS12);
+    vSim3_right->setId(0);
+    vSim3_right->setFixed(false);
+    vSim3_right->_principle_point[0] = K2.at<float>(0,2);
+    vSim3_right->_principle_point[1] = K2.at<float>(1,2);
+    vSim3_right->_focal_length[0] = K2.at<float>(0,0);
+    vSim3_right->_focal_length[1] = K2.at<float>(1,1);
+    optimizer.addVertex(vSim3_left);
+    optimizer.addVertex(vSim3_right);
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
 
     // Set MapPoint vertices
     const int N = vpMatches1.size();
-    const vector<MapPoint*> vpMapPoints1 = pKF1->GetMapPointMatches();
-    vector<g2o::EdgeSim3ProjectXYZ*> vpEdges12;
-    vector<g2o::EdgeInverseSim3ProjectXYZ*> vpEdges21;
-    vector<size_t> vnIndexEdge;
+    const std::vector<MapPoint*> vpMapPoints1 = pKF1->GetMapPointMatches();
+    std::vector<g2o::EdgeSim3ProjectXYZ*> vpEdges12;
+    std::vector<g2o::EdgeInverseSim3ProjectXYZ*> vpEdges21;
+    std::vector<size_t> vnIndexEdge;
 
     vnIndexEdge.reserve(2*N);
     vpEdges12.reserve(2*N);

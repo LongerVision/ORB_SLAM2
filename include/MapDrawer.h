@@ -34,7 +34,7 @@ namespace ORB_SLAM2
 class MapDrawer
 {
 public:
-    MapDrawer(Map* pMap, const string &strSettingPath);
+    MapDrawer(Map* pMap, const std::string &strSettingPath);
 
     Map* mpMap;
 
@@ -43,6 +43,7 @@ public:
     void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
     void SetCurrentCameraPose(const cv::Mat &Tcw);
     void SetReferenceKeyFrame(KeyFrame *pKF);
+    void GetCurrentOpenGLCameraMatrix(cv::Mat_<float> &M);
     void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M);
 
 private:

@@ -22,15 +22,18 @@
 #ifndef ORBVOCABULARY_H
 #define ORBVOCABULARY_H
 
-#include"Thirdparty/DBoW2/DBoW2/FORB.h"
-#include"Thirdparty/DBoW2/DBoW2/TemplatedVocabulary.h"
+#include"DBoW2/FORB.h"
+#include"DBoW2/TemplatedVocabulary.h"
+#include "ExtendedTemplatedVocabulary.h"
 
 namespace ORB_SLAM2
 {
 
-typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
+//typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
+//  ORBVocabulary;
+typedef DBoW2::ExtendedTemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
   ORBVocabulary;
-
+  
 } //namespace ORB_SLAM
 
 #endif // ORBVOCABULARY_H

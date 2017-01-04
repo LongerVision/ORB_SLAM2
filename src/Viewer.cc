@@ -26,7 +26,7 @@
 namespace ORB_SLAM2
 {
 
-Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
+Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const std::string &strSettingPath):
     mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking),
     mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false)
 {
@@ -84,8 +84,16 @@ void Viewer::Run()
             .SetBounds(0.0, 1.0, pangolin::Attach::Pix(175), 1.0, -1024.0f/768.0f)
             .SetHandler(new pangolin::Handler3D(s_cam));
 
+    ///////////////////////////////////////////////////////////////////////////////////////////
     pangolin::OpenGlMatrix Twc;
     Twc.SetIdentity();
+    // Pei JIA, 2016-10-22. to be replaced by the following
+//    cv::Mat_<float> Twc = cv::Mat_<float>::zeros(4, 4);
+//    Twc.at<float>(0,0) = 1.0f;
+//    Twc.at<float>(1,1) = 1.0f;
+//    Twc.at<float>(2,2) = 1.0f;
+//    Twc.at<float>(3,3) = 1.0f;
+    ///////////////////////////////////////////////////////////////////////////////////////////
 
     cv::namedWindow("ORB-SLAM2: Current Frame");
 
@@ -170,45 +178,45 @@ void Viewer::Run()
 
 void Viewer::RequestFinish()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     mbFinishRequested = true;
 }
 
 bool Viewer::CheckFinish()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     return mbFinishRequested;
 }
 
 void Viewer::SetFinish()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     mbFinished = true;
 }
 
 bool Viewer::isFinished()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     return mbFinished;
 }
 
 void Viewer::RequestStop()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
     if(!mbStopped)
         mbStopRequested = true;
 }
 
 bool Viewer::isStopped()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
     return mbStopped;
 }
 
 bool Viewer::Stop()
 {
-    unique_lock<mutex> lock(mMutexStop);
-    unique_lock<mutex> lock2(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock2(mMutexFinish);
 
     if(mbFinishRequested)
         return false;
@@ -225,7 +233,7 @@ bool Viewer::Stop()
 
 void Viewer::Release()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
     mbStopped = false;
 }
 

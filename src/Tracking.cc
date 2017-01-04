@@ -38,8 +38,6 @@
 #include<mutex>
 
 
-using namespace std;
-
 namespace ORB_SLAM2
 {
 
@@ -274,7 +272,7 @@ void Tracking::Track()
     mLastProcessedState=mState;
 
     // Get Map Mutex -> Map cannot be changed
-    unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
+    std::unique_lock<std::mutex> lock(mpMap->mMutexMapUpdate);
 
     if(mState==NOT_INITIALIZED)
     {
