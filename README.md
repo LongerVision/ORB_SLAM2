@@ -60,7 +60,7 @@ I have tested the library in **Ubuntu 16.04.1** and **Ubuntu 17.04** is to be te
 We use the new thread and chrono functionalities of C++11.
 
 ## Pangolin (To be removed soon)
-OpenGL + OpenCV Highgui should be enough to undertake the task of **DISPLAY**.
+**OpenGL** with **OpenCV Highgui** should be **ENOUGH** to undertake the task of **DISPLAY**.
 
 ## OpenCV
 We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **My test was based on OpenCV 3.2.0**.
