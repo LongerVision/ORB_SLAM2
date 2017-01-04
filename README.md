@@ -72,7 +72,7 @@ Required by g2o (see below). Download and install instructions can be found at: 
 **DO NOT use the modified DBoW2 and g2o included in original ORB_SLAM2's Thirdparty folder. In my current forked and modified ORB_SLAM2, please just use the original [DBoW2](https://github.com/dorian3d/DBoW2), which is based on [DLib](https://github.com/dorian3d/DLib) and the original [g2o](https://github.com/RainerKuemmerle/g2o). And [DBoW2](https://github.com/dorian3d/DBoW2) is to be replace by [DBoW3](https://github.com/rmsalinas/DBow3) soon, which DOES NOT rely on [DLib](https://github.com/dorian3d/DLib)**
 
 ## ROS (PROHIBITED)
-**NEVER EVER use ROS. People need FREEDOM!** Thank you...
+**NEVER EVER use ROS. People need FREEDOM! Thank you...**
 
 #3. Building ORB-SLAM2 library and TUM/KITTI examples
 
