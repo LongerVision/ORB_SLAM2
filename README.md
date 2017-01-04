@@ -1,5 +1,5 @@
 # ORB-SLAM2
-**Note:** This is a modified version of original [ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2). The purpose is to make Visual Slam based on ORB features more efficient, applicable, decent, and pure. Thus, the **Prerequisites** section and **ROS Examples** have been heavily modified as follows:
+**Note:** This is a modified version of original [ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2). The purpose is to make Visual Slam based on ORB features more efficient, applicable, decent, and pure. Thus, the **Prerequisites** section and **ROS Examples** have been **HEAVILY** modified as follows:
 
 
 
@@ -54,38 +54,40 @@ if you use ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
      }
 
 #2. Prerequisites
-We have tested the library in **Ubuntu 12.04** and **14.04**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
+I have tested the library in **Ubuntu 16.04.1** and **Ubuntu 17.04** is to be tested soon. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
 
-## C++11 or C++0x Compiler
+## Enable both C++11 and C++14 Compiler
 We use the new thread and chrono functionalities of C++11.
 
-## Pangolin
-We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin.
+## Pangolin (To be removed soon)
+OpenGL + OpenCV Highgui should be enough to undertake the task of **DISPLAY**.
 
 ## OpenCV
-We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 2.4.3. Tested with OpenCV 2.4.11**.
+We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **My test was based on OpenCV 3.2.0**.
 
 ## Eigen3
 Required by g2o (see below). Download and install instructions can be found at: http://eigen.tuxfamily.org. **Required at least 3.1.0**.
 
-## DBoW2 and g2o (Included in Thirdparty folder)
-We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are BSD) are included in the *Thirdparty* folder.
+## DBoW2 and g2o
+**DO NOT use the modified DBoW2 and g2o included in original ORB_SLAM2's Thirdparty folder. In my forked and modified ORB_SLAM2, please just use the original [DBoW2](https://github.com/dorian3d/DBoW2), which is based on [DLib](https://github.com/dorian3d/DLib) and the original [g2o](https://github.com/RainerKuemmerle/g2o). And [DBoW2](https://github.com/dorian3d/DBoW2) is to be replace by [DBoW3](https://github.com/rmsalinas/DBow3) soon, which DOES NOT rely on [DLib](https://github.com/dorian3d/DLib)**
 
-## ROS (optional)
-We provide some examples to process the live input of a monocular, stereo or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
+## ROS (PROHIBITED)
+**NEVER EVER use ROS. People need FREEDOM!** Thank you...
 
 #3. Building ORB-SLAM2 library and TUM/KITTI examples
 
 Clone the repository:
 ```
-git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
+git clone https://github.com/jiapei100/ORB_SLAM2.git ORB_SLAM2
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
 cd ORB_SLAM2
-chmod +x build.sh
-./build.sh
+mkdir build
+cd build
+cmake ../
+make -j8
 ```
 
 This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
