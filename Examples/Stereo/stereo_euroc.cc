@@ -19,6 +19,8 @@
 */
 
 
+#include<vector>
+#include<string>
 #include<iostream>
 #include<algorithm>
 #include<fstream>
@@ -29,34 +31,33 @@
 
 #include<System.h>
 
-using namespace std;
 
-void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
-                vector<string> &vstrImageLeft, vector<string> &vstrImageRight, vector<double> &vTimeStamps);
+void LoadImages(const std::string &strPathLeft, const std::string &strPathRight, const std::string &strPathTimes,
+                std::vector<std::string> &vstrImageLeft, std::vector<std::string> &vstrImageRight, std::vector<double> &vTimeStamps);
 
 int main(int argc, char **argv)
 {
     if(argc != 6)
     {
-        cerr << endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_left_folder path_to_right_folder path_to_times_file" << endl;
+        std::cerr << std::endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_left_folder path_to_right_folder path_to_times_file" << std::endl;
         return 1;
     }
 
     // Retrieve paths to images
-    vector<string> vstrImageLeft;
-    vector<string> vstrImageRight;
-    vector<double> vTimeStamp;
-    LoadImages(string(argv[3]), string(argv[4]), string(argv[5]), vstrImageLeft, vstrImageRight, vTimeStamp);
+    std::vector<std::string> vstrImageLeft;
+    std::vector<std::string> vstrImageRight;
+    std::vector<double> vTimeStamp;
+    LoadImages(std::string(argv[3]), std::string(argv[4]), std::string(argv[5]), vstrImageLeft, vstrImageRight, vTimeStamp);
 
     if(vstrImageLeft.empty() || vstrImageRight.empty())
     {
-        cerr << "ERROR: No images in provided path." << endl;
+        std::cerr << "ERROR: No images in provided path." << std::endl;
         return 1;
     }
 
     if(vstrImageLeft.size()!=vstrImageRight.size())
     {
-        cerr << "ERROR: Different number of left and right images." << endl;
+        std::cerr << "ERROR: Different number of left and right images." << std::endl;
         return 1;
     }
 
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
     cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
     if(!fsSettings.isOpened())
     {
-        cerr << "ERROR: Wrong path to settings" << endl;
+        std::cerr << "ERROR: Wrong path to settings" << std::endl;
         return -1;
     }
 
@@ -89,7 +90,7 @@ int main(int argc, char **argv)
     if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
             rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
     {
-        cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
+        std::cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << std::endl;
         return -1;
     }
 
@@ -104,12 +105,12 @@ int main(int argc, char **argv)
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
 
     // Vector for tracking time statistics
-    vector<float> vTimesTrack;
+    std::vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
 
-    cout << endl << "-------" << endl;
-    cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;
+    std::cout << std::endl << "-------" << std::endl;
+    std::cout << "Start processing sequence ..." << std::endl;
+    std::cout << "Images in the sequence: " << nImages << std::endl << std::endl;
 
     // Main loop
     cv::Mat imLeft, imRight, imLeftRect, imRightRect;
@@ -121,15 +122,15 @@ int main(int argc, char **argv)
 
         if(imLeft.empty())
         {
-            cerr << endl << "Failed to load image at: "
-                 << string(vstrImageLeft[ni]) << endl;
+            std::cerr << std::endl << "Failed to load image at: "
+                 << std::string(vstrImageLeft[ni]) << std::endl;
             return 1;
         }
 
         if(imRight.empty())
         {
-            cerr << endl << "Failed to load image at: "
-                 << string(vstrImageRight[ni]) << endl;
+            std::cerr << std::endl << "Failed to load image at: "
+                 << std::string(vstrImageRight[ni]) << std::endl;
             return 1;
         }
 
@@ -179,9 +180,9 @@ int main(int argc, char **argv)
     {
         totaltime+=vTimesTrack[ni];
     }
-    cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
+    std::cout << "-------" << std::endl << std::endl;
+    std::cout << "median tracking time: " << vTimesTrack[nImages/2] << std::endl;
+    std::cout << "mean tracking time: " << totaltime/nImages << std::endl;
 
     // Save camera trajectory
     SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
@@ -189,21 +190,21 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
-                vector<string> &vstrImageLeft, vector<string> &vstrImageRight, vector<double> &vTimeStamps)
+void LoadImages(const std::string &strPathLeft, const std::string &strPathRight, const std::string &strPathTimes,
+                std::vector<std::string> &vstrImageLeft, std::vector<std::string> &vstrImageRight, std::vector<double> &vTimeStamps)
 {
-    ifstream fTimes;
+    std::ifstream fTimes;
     fTimes.open(strPathTimes.c_str());
     vTimeStamps.reserve(5000);
     vstrImageLeft.reserve(5000);
     vstrImageRight.reserve(5000);
     while(!fTimes.eof())
     {
-        string s;
-        getline(fTimes,s);
+        std::string s;
+        std::getline(fTimes,s);
         if(!s.empty())
         {
-            stringstream ss;
+            std::stringstream ss;
             ss << s;
             vstrImageLeft.push_back(strPathLeft + "/" + ss.str() + ".png");
             vstrImageRight.push_back(strPathRight + "/" + ss.str() + ".png");

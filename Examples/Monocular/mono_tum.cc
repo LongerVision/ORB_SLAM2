@@ -19,6 +19,8 @@
 */
 
 
+#include<vector>
+#include<string>
 #include<iostream>
 #include<algorithm>
 #include<fstream>
@@ -28,23 +30,23 @@
 
 #include<System.h>
 
-using namespace std;
 
-void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
-                vector<double> &vTimestamps);
+
+void LoadImages(const std::string &strFile, std::vector<std::string> &vstrImageFilenames,
+                std::vector<double> &vTimestamps);
 
 int main(int argc, char **argv)
 {
     if(argc != 4)
     {
-        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_sequence" << endl;
+        std::cerr << std::endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_sequence" << std::endl;
         return 1;
     }
 
     // Retrieve paths to images
-    vector<string> vstrImageFilenames;
-    vector<double> vTimestamps;
-    string strFile = string(argv[3])+"/rgb.txt";
+    std::vector<std::string> vstrImageFilenames;
+    std::vector<double> vTimestamps;
+    std::string strFile = std::string(argv[3])+"/rgb.txt";
     LoadImages(strFile, vstrImageFilenames, vTimestamps);
 
     int nImages = vstrImageFilenames.size();
@@ -53,25 +55,25 @@ int main(int argc, char **argv)
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
     // Vector for tracking time statistics
-    vector<float> vTimesTrack;
+    std::vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
 
-    cout << endl << "-------" << endl;
-    cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;
+    std::cout << std::endl << "-------" << std::endl;
+    std::cout << "Start processing sequence ..." << std::endl;
+    std::cout << "Images in the sequence: " << nImages << std::endl << std::endl;
 
     // Main loop
     cv::Mat im;
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image from file
-        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        im = cv::imread(std::string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
         if(im.empty())
         {
-            cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenames[ni] << endl;
+            std::cerr << std::endl << "Failed to load image at: "
+                 << std::string(argv[3]) << "/" << vstrImageFilenames[ni] << std::endl;
             return 1;
         }
 
@@ -115,9 +117,9 @@ int main(int argc, char **argv)
     {
         totaltime+=vTimesTrack[ni];
     }
-    cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
+    std::cout << "-------" << std::endl << std::endl;
+    std::cout << "median tracking time: " << vTimesTrack[nImages/2] << std::endl;
+    std::cout << "mean tracking time: " << totaltime/nImages << std::endl;
 
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
@@ -125,27 +127,27 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
+void LoadImages(const std::string &strFile, std::vector<std::string> &vstrImageFilenames, std::vector<double> &vTimestamps)
 {
-    ifstream f;
+    std::ifstream f;
     f.open(strFile.c_str());
 
     // skip first three lines
-    string s0;
+    std::string s0;
     getline(f,s0);
     getline(f,s0);
     getline(f,s0);
 
     while(!f.eof())
     {
-        string s;
+        std::string s;
         getline(f,s);
         if(!s.empty())
         {
-            stringstream ss;
+            std::stringstream ss;
             ss << s;
             double t;
-            string sRGB;
+            std::string sRGB;
             ss >> t;
             vTimestamps.push_back(t);
             ss >> sRGB;

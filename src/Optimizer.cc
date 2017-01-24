@@ -41,8 +41,8 @@
 #include "g2o/types/sim3/types_seven_dof_expmap.h"
 #include "g2o/types/icp/types_icp.h"
 
-//#include "extended_types_six_dof_expmap.h"
-//#include "extended_types_seven_dof_expmap.h"
+#include "extended_types_six_dof_expmap.h"
+#include "extended_types_seven_dof_expmap.h"
 
 
 

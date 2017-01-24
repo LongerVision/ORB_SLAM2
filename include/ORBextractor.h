@@ -28,6 +28,9 @@
 
 namespace ORB_SLAM2
 {
+const int PATCH_SIZE = 31;
+const int HALF_PATCH_SIZE = 15;
+const int EDGE_THRESHOLD = 19;
 
 class ExtractorNode
 {
@@ -51,7 +54,7 @@ public:
     ORBextractor(int nfeatures, float scaleFactor, int nlevels,
                  int iniThFAST, int minThFAST);
 
-    ~ORBextractor(){}
+    virtual ~ORBextractor(){}
 
     // Compute the ORB features and descriptors on an image.
     // ORB are dispersed on the image using an octree.

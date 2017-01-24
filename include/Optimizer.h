@@ -33,7 +33,7 @@
 namespace ORB_SLAM2
 {
 // Added by Pei JIA, 2017-01-03
-#define DENSE true
+#define DENSE false
 class LoopClosing;
 
 class Optimizer

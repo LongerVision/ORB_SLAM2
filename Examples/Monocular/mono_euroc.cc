@@ -19,6 +19,8 @@
 */
 
 
+#include<vector>
+#include<string>
 #include<iostream>
 #include<algorithm>
 #include<fstream>
@@ -28,29 +30,28 @@
 
 #include<System.h>
 
-using namespace std;
 
-void LoadImages(const string &strImagePath, const string &strPathTimes,
-                vector<string> &vstrImages, vector<double> &vTimeStamps);
+void LoadImages(const std::string &strImagePath, const std::string &strPathTimes,
+                std::vector<std::string> &vstrImages, std::vector<double> &vTimeStamps);
 
 int main(int argc, char **argv)
 {
     if(argc != 5)
     {
-        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_image_folder path_to_times_file" << endl;
+        std::cerr << std::endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_image_folder path_to_times_file" << std::endl;
         return 1;
     }
 
     // Retrieve paths to images
-    vector<string> vstrImageFilenames;
-    vector<double> vTimestamps;
-    LoadImages(string(argv[3]), string(argv[4]), vstrImageFilenames, vTimestamps);
+    std::vector<std::string> vstrImageFilenames;
+    std::vector<double> vTimestamps;
+    LoadImages(std::string(argv[3]), std::string(argv[4]), vstrImageFilenames, vTimestamps);
 
     int nImages = vstrImageFilenames.size();
 
     if(nImages<=0)
     {
-        cerr << "ERROR: Failed to load images" << endl;
+        std::cerr << "ERROR: Failed to load images" << std::endl;
         return 1;
     }
 
@@ -58,12 +59,12 @@ int main(int argc, char **argv)
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
     // Vector for tracking time statistics
-    vector<float> vTimesTrack;
+    std::vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
 
-    cout << endl << "-------" << endl;
-    cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;
+    std::cout << std::endl << "-------" << std::endl;
+    std::cout << "Start processing sequence ..." << std::endl;
+    std::cout << "Images in the sequence: " << nImages << std::endl << std::endl;
 
     // Main loop
     cv::Mat im;
@@ -75,8 +76,8 @@ int main(int argc, char **argv)
 
         if(im.empty())
         {
-            cerr << endl << "Failed to load image at: "
-                 <<  vstrImageFilenames[ni] << endl;
+            std::cerr << std::endl << "Failed to load image at: "
+                 <<  vstrImageFilenames[ni] << std::endl;
             return 1;
         }
 
@@ -120,9 +121,9 @@ int main(int argc, char **argv)
     {
         totaltime+=vTimesTrack[ni];
     }
-    cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
+    std::cout << "-------" << std::endl << std::endl;
+    std::cout << "median tracking time: " << vTimesTrack[nImages/2] << std::endl;
+    std::cout << "mean tracking time: " << totaltime/nImages << std::endl;
 
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
@@ -130,20 +131,20 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadImages(const string &strImagePath, const string &strPathTimes,
-                vector<string> &vstrImages, vector<double> &vTimeStamps)
+void LoadImages(const std::string &strImagePath, const std::string &strPathTimes,
+                std::vector<std::string> &vstrImages, std::vector<double> &vTimeStamps)
 {
-    ifstream fTimes;
+    std::ifstream fTimes;
     fTimes.open(strPathTimes.c_str());
     vTimeStamps.reserve(5000);
     vstrImages.reserve(5000);
     while(!fTimes.eof())
     {
-        string s;
+        std::string s;
         getline(fTimes,s);
         if(!s.empty())
         {
-            stringstream ss;
+            std::stringstream ss;
             ss << s;
             vstrImages.push_back(strImagePath + "/" + ss.str() + ".png");
             double t;
