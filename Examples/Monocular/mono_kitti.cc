@@ -133,7 +133,11 @@ void LoadImages(const std::string &strPathToSequence, std::vector<std::string> &
     while(!fTimes.eof())
     {
         std::string s;
+<<<<<<< HEAD
         std::getline(fTimes,s);
+=======
+        getline(fTimes,s);
+>>>>>>> b7ef327e1e58e604e7e2679522177a1073abce41
         if(!s.empty())
         {
             std::stringstream ss;

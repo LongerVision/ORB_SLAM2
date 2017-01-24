@@ -76,8 +76,8 @@ int main(int argc, char **argv)
 
         if(im.empty())
         {
-            cerr << endl << "Failed to load image at: "
-                 <<  vstrImageFilenames[ni] << endl;
+            std::cerr << std::endl << "Failed to load image at: "
+                 <<  vstrImageFilenames[ni] << std::endl;
             return 1;
         }
 
@@ -141,7 +141,11 @@ void LoadImages(const std::string &strImagePath, const std::string &strPathTimes
     while(!fTimes.eof())
     {
         std::string s;
+<<<<<<< HEAD
         std::getline(fTimes,s);
+=======
+        getline(fTimes,s);
+>>>>>>> b7ef327e1e58e604e7e2679522177a1073abce41
         if(!s.empty())
         {
             std::stringstream ss;
