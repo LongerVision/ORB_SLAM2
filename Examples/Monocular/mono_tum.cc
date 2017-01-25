@@ -134,24 +134,15 @@ void LoadImages(const std::string &strFile, std::vector<std::string> &vstrImageF
 
     // skip first three lines
     std::string s0;
-<<<<<<< HEAD
     std::getline(f,s0);
     std::getline(f,s0);
     std::getline(f,s0);
-=======
-    getline(f,s0);
-    getline(f,s0);
-    getline(f,s0);
->>>>>>> b7ef327e1e58e604e7e2679522177a1073abce41
 
     while(!f.eof())
     {
         std::string s;
-<<<<<<< HEAD
         std::getline(f,s);
-=======
-        getline(f,s);
->>>>>>> b7ef327e1e58e604e7e2679522177a1073abce41
+
         if(!s.empty())
         {
             std::stringstream ss;
